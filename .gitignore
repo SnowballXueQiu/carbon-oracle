@@ -18,6 +18,10 @@ data/*.db
 data/knowledge_base/
 logs/
 reports/*.png
+
+# Models
+src/models/*.pkl
+*.pkl
 reports/*.json
 
 # Mac
