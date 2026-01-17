@@ -81,7 +81,7 @@ class MockBatchGenerator:
         decay = (0.05 * self.ph_decay_rate) 
         # Add random spikes
         noise = random.gauss(0, 0.05 * chaos_factor)
-        self.current_ph = max(7.0, self.current_ph - decay + noise)
+        self.current_ph = min(14.0, max(7.0, self.current_ph - decay + noise))
         
         # Temperature: PID-like approach to target
         target = self.target_temp
