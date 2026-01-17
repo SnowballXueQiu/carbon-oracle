@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 import requests
+import json
+from typing import Iterator
+
 # Try importing openai, handle if missing
 try:
     from openai import OpenAI
@@ -11,6 +14,10 @@ from ..core.config_loader import config
 class AIProvider(ABC):
     @abstractmethod
     def generate(self, prompt: str) -> str:
+        pass
+
+    @abstractmethod
+    def generate_stream(self, prompt: str) -> Iterator[str]:
         pass
 
 class OpenAIProvider(AIProvider):
@@ -30,34 +37,67 @@ class OpenAIProvider(AIProvider):
         )
         return response.choices[0].message.content or ""
 
+    def generate_stream(self, prompt: str) -> Iterator[str]:
+        stream = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            stream=True
+        )
+        for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+
 class OllamaProvider(AIProvider):
     def __init__(self):
         self.base_url = config.get("ollama.base_url")
         self.model = config.get("ollama.model")
 
     def generate(self, prompt: str) -> str:
-        # Simple REST API for Ollama (OpenAI Compatible Endpoint)
+        # Re-use stream for simplicity or keep separate
+        full = ""
+        for chunk in self.generate_stream(prompt):
+            full += chunk
+        return full
+
+    def generate_stream(self, prompt: str) -> Iterator[str]:
         url = f"{self.base_url}/chat/completions"
         payload = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
-            "stream": False
+            "stream": True # Enable streaming
         }
         try:
-            resp = requests.post(url, json=payload)
-            if resp.status_code == 200:
-                data = resp.json()
-                # Try OpenAI format first
-                if "choices" in data and len(data["choices"]) > 0:
-                    return data["choices"][0].get("message", {}).get("content", "")
-                # Fallback to Ollama native format just in case
-                if "message" in data:
-                    return data.get("message", {}).get("content", "")
-                return str(data) # Debug if unknown format
-            else:
-                return f"Error from Ollama: {resp.text}"
+            with requests.post(url, json=payload, stream=True) as resp:
+                if resp.status_code == 200:
+                    for line in resp.iter_lines():
+                        if line:
+                            decoded = line.decode('utf-8')
+                            if decoded.strip() == "data: [DONE]": 
+                                break # OpenAI format done signal
+                            
+                            # Handle "data: " prefix if present (OpenAI style)
+                            if decoded.startswith("data: "):
+                                decoded = decoded[6:]
+                                
+                            try:
+                                data = json.loads(decoded)
+                                # OpenAI compatible format
+                                if "choices" in data and len(data["choices"]) > 0:
+                                    delta = data["choices"][0].get("delta", {})
+                                    content = delta.get("content", "")
+                                    if content: 
+                                        yield content
+                                # Native Ollama format
+                                elif "message" in data:
+                                    content = data["message"].get("content", "")
+                                    if content: 
+                                        yield content
+                            except:
+                                pass # Ignore parsing errors in stream
+                else:
+                    yield f"[Error: {resp.status_code}]"
         except Exception as e:
-            return f"Ollama Connection Error: {str(e)}"
+            yield f"[Connection Error: {str(e)}]"
 
 class AIProviderFactory:
     @staticmethod

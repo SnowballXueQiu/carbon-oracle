@@ -14,6 +14,8 @@ from rich.live import Live
 from rich.text import Text
 from rich.progress import SpinnerColumn, Progress, TextColumn
 from rich.status import Status
+from rich.markdown import Markdown
+from rich.theme import Theme
 from rich import box
 
 # Ensure we can import modules if run directly
@@ -29,8 +31,18 @@ from src.ai.provider import AIProviderFactory
 from src.reports.analyst import BatchAnalyst
 from src.core.database import ExperimentDatabase
 
-# Initialize Console
-console = Console()
+# Initialize Console with Rainbow Markdown Theme
+custom_theme = Theme({
+    "markdown.h1": "bold red",
+    "markdown.h2": "bold orange1",
+    "markdown.h3": "bold yellow",
+    "markdown.h4": "bold green",
+    "markdown.h5": "bold cyan",
+    "markdown.h6": "bold magenta",
+    "markdown.table": "white",
+    "markdown.strong": "bold white", 
+})
+console = Console(theme=custom_theme)
 
 # Setup Logging
 log_dir = os.path.join(os.path.dirname(__file__), "..", "logs")
@@ -187,11 +199,34 @@ def main():
         final_feats = extractor.extract(history_records)
         final_pred = predictor.predict(final_feats)
         
-        # AI Analysis & RAG Report
-        with console.status("[bold magenta]Generating Multi-modal Analysis (Consulting Vector DB & AI)...", spinner="earth") as status:
-            analyst.generate_full_report(batch_id, history_records, final_feats, final_pred, real_capacity_truth)
-        
-        console.print(Panel(f"Report generated in {analyst.visualizer.output_dir}", title="Final Report", border_style="green"))
+        # 1. Charts
+        console.print("[bold cyan]Generating Visual Reports...[/]")
+        analyst.visualizer.generate_report_charts(batch_id, history_records)
+        console.print(f"[italic grey]Charts saved to: {analyst.visualizer.output_dir}[/]")
+
+        # 2. AI Analysis (Streaming)
+        if analyst.ai:
+            # Prepare Prompt
+            prompt = analyst.generate_report_prompt(batch_id, history_records, final_feats, final_pred, real_capacity_truth)
+            
+            console.print(Panel("[blink]Connecting to AI Agent...[/]", border_style="cyan"))
+            
+            full_response = ""
+            with Live(Panel(Markdown(full_response), title="Real-time AI Assessment", border_style="cyan"), 
+                      refresh_per_second=10, console=console) as live:
+                try:
+                    stream = analyst.ai.generate_stream(prompt)
+                    for chunk in stream:
+                        full_response += chunk
+                        live.update(Panel(Markdown(full_response), title="Real-time AI Assessment", border_style="cyan"))
+                except Exception as e:
+                    full_response += f"\n**Analysis Error**: {e}"
+                    live.update(Panel(Markdown(full_response), title="Real-time AI Assessment", border_style="red"))
+
+            # Save to Memory
+            analyst.save_analysis(batch_id, full_response, real_capacity_truth)
+        else:
+            console.print("[bold red]AI Provider not configured. Skipping qualitative analysis.[/]")
 
         # 5. Save to Knowledge Base (SQL DB for Training)
         db = ExperimentDatabase()

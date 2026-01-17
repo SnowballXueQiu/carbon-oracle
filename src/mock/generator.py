@@ -30,9 +30,12 @@ class MockBatchGenerator:
             self.ph_decay_rate = 1.5  # Fast decay
         elif self.batch_type == "abnormal":
             self.target_temp = 800
-            # Abnormal usually implies hardware failure or extreme noise in this context?
-            # Or just very weird chemical behavior.
             self.ph_decay_rate = random.choice([0.1, 3.0]) 
+        elif self.batch_type == "optimal":
+            # Tuned for Success (Goal > 3.0 mmol/g)
+            self.target_temp = 800.0 
+            self.ph_decay_rate = 1.2 # Tuned to reach ~8.0 pH from 13.5 over 100mins
+            self.start_ph = 13.5
         else: # Normal
             self.target_temp = random.uniform(750, 850)
             self.ph_decay_rate = 1.0
@@ -49,18 +52,19 @@ class MockBatchGenerator:
         self.ph_history = []
         self.color_history = []
 
+    def _determine_batch_type(self) -> str:
+        # Increase probability of interesting/bad batches for Demo purposes
+        r = random.random()
+        if r < 0.60: return "optimal"       # 60% Optimal/Success Focus
+        if r < 0.80: return "normal"        # 20% Normal (Variable)
+        if r < 0.90: return "under_active"  # 10% Weak
+        if r < 0.95: return "over_active"   # 5% Overcooked
+        return "abnormal"                   # 5% Chaos
+
     def adjust_target_temp(self, new_temp: float):
         """ Control Interface for Agent """
         print(f"[MockHardware] Adjusting Heater Target: {self.target_temp:.1f} -> {new_temp:.1f}C")
         self.target_temp = new_temp
-
-    def _determine_batch_type(self) -> str:
-        # Increase probability of interesting/bad batches for Demo purposes
-        r = random.random()
-        if r < 0.40: return "normal"        # 40% Normal
-        if r < 0.70: return "under_active"  # 30% Weak
-        if r < 0.90: return "over_active"   # 20% Overcooked
-        return "abnormal"                   # 10% Chaos
 
     def step(self) -> Optional[SensorRecord]:
         if self.current_min > self.duration:
@@ -69,6 +73,7 @@ class MockBatchGenerator:
         # Inject Chaos based on batch type
         chaos_factor = 1.0
         if self.batch_type == "abnormal": chaos_factor = 3.0
+        if self.batch_type == "optimal": chaos_factor = 0.2 # Very stable
         
         # 1. Update Physics/Chemistry
         
@@ -156,6 +161,7 @@ class MockBatchGenerator:
         if self.batch_type == "under_active": bias = -1.0
         if self.batch_type == "over_active": bias = -0.5 # Overburn is bad too
         if self.batch_type == "abnormal": bias = -2.0
+        if self.batch_type == "optimal": bias = 0.2 # Boost for optimal
 
         capacity = score + bias + random.gauss(0, 0.1)
         return max(0.1, round(capacity, 2))
