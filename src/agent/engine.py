@@ -10,11 +10,19 @@ class AgentEngine:
         
         self.history_predictions: List[float] = []
 
-    def decide(self, prediction: PredictionResult, features: ExtractedFeatures) -> AgentDecision:
+    def decide(self, prediction: PredictionResult, features: ExtractedFeatures, current_time: int = 0) -> AgentDecision:
         """
         Rule-based decision making.
         Section 7.4 in PRD.
         """
+        # 0. Warmup Period Protection
+        # Don't stop early batches that are still heating up (e.g. < 60 mins)
+        if current_time < 60:
+            return AgentDecision(
+                action="continue",
+                reason=f"Warmup Phase (T={current_time} < 60min). Monitoring..."
+            )
+
         self.history_predictions.append(prediction.capacity)
         
         # 1. Check Confidence

@@ -2,8 +2,6 @@ import os
 import sys
 import contextlib
 import chromadb
-from chromadb.config import Settings
-from typing import List, Dict, Optional
 
 KB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "knowledge_base")
 

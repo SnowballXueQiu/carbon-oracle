@@ -1,5 +1,4 @@
 from typing import List, Optional
-import numpy as np
 from ..core.types import SensorRecord, ExtractedFeatures, PredictionResult
 from ..ai.provider import AIProvider
 from .visualizer import Visualizer

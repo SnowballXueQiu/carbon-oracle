@@ -1,13 +1,11 @@
 import os
 import joblib
 import numpy as np
-import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from typing import List, Tuple
 from ..core.types import ExtractedFeatures, PredictionResult
 from ..mock.generator import MockBatchGenerator
 from ..features.extract import FeatureExtractor
-from ..core.config_loader import config
 
 from ..core.database import ExperimentDatabase
 

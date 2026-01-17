@@ -2,18 +2,14 @@ import time
 import sys
 import os
 import logging
-from datetime import datetime
 from typing import List
 
 # Rich Imports
 from rich.console import Console
 from rich.table import Table
-from rich.layout import Layout
 from rich.panel import Panel
 from rich.live import Live
 from rich.text import Text
-from rich.progress import SpinnerColumn, Progress, TextColumn
-from rich.status import Status
 from rich.markdown import Markdown
 from rich.theme import Theme
 from rich import box
@@ -150,7 +146,7 @@ def main():
                 prediction = predictor.predict(feats)
                 
                 # Agent Decide
-                decision = agent.decide(prediction, feats)
+                decision = agent.decide(prediction, feats, current_time=record.time_min)
                 
                 # Close-Loop Control Action
                 control_msg = ""
