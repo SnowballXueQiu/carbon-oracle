@@ -1,80 +1,129 @@
-# Carbon Oracle: Intelligent Adsorbent Monitoring System
-> **An AI-Driven Closed-Loop Control Framework for Carbon Capture Material Synthesis**
+# Carbon Oracle: A Multi-Modal "Soft-Sensing" Framework for Optimized Carbon Capture Material Synthesis
 
-## Abstract
-**Carbon Oracle** is an advanced "Soft Sensing" control system designed to optimize the synthesis of Reduced Graphene Oxide (rGO) based CO₂ adsorbents. By integrating real-time sensor fusion with a **Retrieval-Augmented Generation (RAG)** optimization engine, the system moves beyond passive monitoring to active, autonomous process intervention. The platform leverages a hybrid architecture combining random forest regressors for capacity prediction with a Vector Database (ChromaDB) for storing and retrieving experimental context, enabling a self-improving feedback loop that refines process parameters over successive batches.
-
----
-
-## System Architecture
-
-The system operates on four pillars of modern industrial autonomy:
-
-### 1. **Soft-Sensing & Prediction (The "Oracle")**
-*   **Feature Extraction**: Real-time extraction of temporal features (pH slope, dTemp/dt, colorimetric peaks) from raw sensor streams.
-*   **Predictive Modeling**: Uses a self-correcting Random Forest regressor to estimate final CO₂ adsorption capacity (mmol/g) minutes into the reaction.
-
-### 2. **Closed-Loop Control (The "Agent")**
-*   **Autonomous Intervention**: A rule-based Agent Engine monitors safety and quality thresholds.
-*   **Bi-Directional Action**: The system can actively adjust hardware parameters (e.g., specific heating rates, acid dosing) instead of merely alerting operators.
-
-### 3. **Persistent Memory & Learning**
-*   **Structured History (SQL)**: All sensor time-series and ground truth validations are committed to a `sqlite` database.
-*   **Self-Training**: On startup, the `Predictor` module evaluates available historical data. If sufficient "Real World" ground truth exists, it automatically adapts its weights, evolving from synthetic priors to empirical reality.
-
-### 4. **RAG-Enhanced Analysis**
-*   **Vector Search (ChromaDB)**: Qualitative insights and experimental metadata are embedded and indexed.
-*   **Contextual Intelligence**: Before generating a final report, the system queries the Knowledge Base for "nearest neighbor" experiments, providing the Large Language Model (LLM) with relevant historical precedents to ground its advice.
+> **Research Prototype v0.2.1**  
+> *Autonomous Experimentation System for Porous Carbon Activation*
 
 ---
 
-## Directory Structure
+## 1. Introduction and Objectives
 
-```
-carbon-oracle/
-├── src/
-│   ├── agent/          # Control logic and intervention rules
-│   ├── core/           # Database, Types, and Config loaders
-│   ├── mock/           # High-fidelity chemical process simulator
-│   ├── models/         # ML Predictors (Random Forest)
-│   ├── reports/        # RAG-Analyst and Visualization engine
-│   └── main.py         # Entry point and Event Loop
-├── data/
-│   ├── experiments.db  # Structured Experiment History (SQLite)
-│   └── knowledge_base/ # Vector Embeddings (ChromaDB)
-├── logs/               # Real-time process logs
-├── reports/            # Generated charts and AI assessments
-```
+**Carbon Oracle** is an experimental backend system designed to bridge the gap between bench-scale chemical synthesis and autonomous process control. 
 
-## Methodology
+The primary objective is to optimize the synthesis of **high-surface-area activated carbon** (for CO₂ capture applications) by solving the "Black Box" problem of high-temperature activation furnaces. Conventionally, chemists place precursors in a furnace for hours without visibility into the reaction trajectory. 
 
-### The Optimization Loop
-1.  **Process Start**: System initializes with target parameters.
-2.  **In-Situ Monitoring**: Sensors sample at 1Hz; features are aggregated every `$prediction_interval`.
-3.  **Inference**: Model predicts final capacity; Agent checks confidence bounds.
-4.  **Intervention**: If `Temp > Critical` or `Trend == Negative`, Agent injects control signals (e.g., `set_temp:800`).
-5.  **Post-Analysis**:
-    *   Generates multi-modal report (Charts + Text).
-    *   LLM reviews batch against similar historical cases (RAG).
-    *   **Feedback**: LLM suggests optimized parameters for the *next* batch.
+**Core Problem Solved:**
+*   **Lack of In-Situ Visibility:** Interactions between activating agents (e.g., KOH, NaOH) and carbon precursors at 800°C are chaotic.
+*   **Latency:** Quality verification (BET analysis) takes days after the experiment.
+*   **Process Drift:** Identical parameters often yield different capacities due to precursor variability.
 
-## Installation & Usage
+**Solution:**
+Carbon Oracle implements a **Soft-Sensing** approach, allowing a digital agent to:
+1.  **Monitor** proxy variables (pH of off-gas condensate, thermal fluctuations, conductivity) in real-time.
+2.  **Predict** the final specific surface area (adsorption capacity) before the batch finishes.
+3.  **Intervene** autonomously (adjusting temperature profiles) to salvage batches drifting towards failure.
+
+---
+
+## 2. Technical Methodology & Stack
+
+The system employs a **Hybrid Neuro-Symbolic Architecture**, combining statistical machine learning for fast, quantitative predictions with Large Language Models (LLMs) for qualitative reasoning.
+
+### Technical Stack
+*   **Runtime**: Python 3.11+ (Managed via `uv`)
+*   **Terminal UI**: `Textual` / `Rich` for high-frequency, low-latency visualization.
+*   **Machine Learning**: `scikit-learn` (Random Forest Regressors) for capacity prediction.
+*   **Vector Database**: `ChromaDB` for Retrieval Augmented Generation (RAG).
+*   **Database**: `SQLite` for time-series sensor logging and training data persistence.
+*   **LLM Integration**: Provider-agnostic interface (OpenAI / Ollama) for generating "Academic Batch Reports".
+
+### key Innovations 
+*   **Self-Correcting Predictor**: The ML model re-trains itself on startup using the accumulated history of "Real World" (database) experiments, allowing it to adapt to sensor drift over months.
+*   **Memory-Augmented Analysis**: Before generating a batch report, the system queries a Vector DB for *semantically similar past experiments* (e.g., "Find other batches that overheated at T=60min"), enabling the AI to cite specific precedents.
+
+---
+
+## 3. Simulation Framework (Mock Data Generation)
+
+To allow for rigorous testing of the control logic without wasting physical reagents, Carbon Oracle includes a high-fidelity **Phenomenological Simulator** (`src/mock/generator.py`).
+
+The mock data is not random noise; it is generated based on theoretical chemical engineering principles governing activation kinetics.
+
+### 3.1. Theoretical Basis
+The simulator models a standard **KOH Activation Process** of biomass.
+
+*   **Temperature Dynamics ($T$)**:
+    *   Modeled as a PID-controlled heating ramp with stochastic thermal lag.
+    *   **Failure Mode**: "Abnormal" batches simulate thermocouple decoupling or heater element failure (drifting $\Delta T$).
+    *   *Equation Logic*: $T_{t+1} = T_{target} + \mathcal{N}(0, \sigma_{chaos})$
+    
+*   **pH Decay ($\text{pH}$)**:
+    *   **Proxy for Reaction Progress**: High pH indicates unreacted base. As K₂CO₃ forms and intercalates, free OH⁻ concentration drops.
+    *   **Model**: Exponential decay with noise. 
+    *   *Logic*: $\text{pH}(t) = \text{pH}_{0} - k \cdot t + \epsilon$
+    *   **Optimal Trajectory**: A balanced decay (Rate $\approx 1.2$) correlates with optimal pore formation. Too fast = acid runaway; Too slow = insufficient activation.
+
+*   **Conductivity ($\sigma$)**:
+    *   Modeled as a Sigmoid function representing the release of metallic potassium vapor and ions during the "activation window" (>700°C).
+    *   $S(t) = \frac{1}{1 + e^{-(t - t_0)}}$
+
+*   **Ground Truth Capacity (Target Variable)**:
+    The "True" CO₂ capacity (mmol/g) is calculated at the end of the batch using a multivariate scoring function representing the **"Goldilocks Zone"** of carbonization:
+    $$ Capacity \propto f(T_{mean}) + f(pH_{final}) + f(Color_{max}) + \text{Bias}_{batch\_type} $$
+    *   **$T_{mean}$**: Gaussian penalty centered at 800°C (Optimality).
+    *   **$pH_{final}$**: Penalty for extreme acidity or alkalinity.
+    
+### 3.2 Batch Scenarios
+The simulator generates probabilistic scenarios covering the operational envelope:
+1.  **Optimal (60%)**: Parameters stay within the calibrated window. Reference Capacity > 3.0 mmol/g.
+2.  **Under-Active (10%)**: Temperature fails to reach threshold; Reaction incomplete.
+3.  **Over-Active (5%)**: Thermal runaway; Micropores collapse into Macropores (Low surface area).
+4.  **Abnormal/Chaos (5%)**: Sensors fail or erratic behavior.
+
+---
+
+## 4. Current Status & Roadmap
+
+### ✅ Completed Features
+*   [x] **Core Event Loop**: Synchronous sensor reading pipeline (10Hz).
+*   [x] **TUI (Rainbow Mode)**: Real-time visualization of 4+ sensor streams and Agent decisions.
+*   [x] **RAG Pipeline**: "Consulting" similar past experiments via Vector Search.
+*   [x] **Streaming AI**: Character-level streaming of post-experiment analysis.
+*   [x] **Auto-Training**: Model persistence and reloading.
+
+### 🚧 Work in Progress (WIP)
+*   **Hardware Interface Layer (`src/sensors/`)**: 
+    *   Currently, the system interacts with `MockSensorSystem`. 
+    *   **Next Step**: Implement `pyserial` / `minimalmodbus` drivers to read from:
+        *   K-Type Thermocouples (via MAX6675/Arduino).
+        *   Industrial pH probes (4-20mA loop).
+    *   The architecture allows swapping the `Mock` class for a `Hardware` class without changing the main loop.
+*   **Advanced Control**: Transitioning from Rule-Based (`if pH < 7: STOP`) to Reinforcement Learning (PPO) for temperature profiling.
+
+---
+
+## 5. Usage
 
 ### Prerequisites
-*   Python 3.11+
+*   Python 3.10+
 *   `uv` package manager (recommended) or `pip`
 
-### Setup
+### Installation
 ```bash
-# Install dependencies
-uv sync
+# Clone repository
+git clone https://github.com/SnowballXueQiu/carbon-oracle.git
+cd carbon-oracle
 
-# Run the Demo System
+# Install dependencies (using uv)
+uv sync
+```
+
+### Running the Demo
+This launches the full simulation loop with TUI visualization.
+```bash
 ./run_demo.sh
 ```
 
 ### Configuration
-Adjust thresholds and model settings in `src/config/config.toml`.
-
----
-*© 2026 Carbon Oracle Research Group. All Rights Reserved.*
+Edit `src/config/settings.yaml` to adjust:
+*   `experiment_duration_min`: Length of simulation.
+*   `ai_provider`: Toggle between `openai` and `ollama`.
