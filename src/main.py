@@ -135,8 +135,8 @@ def main():
             # Read Sensor
             record = sensor_system.read()
             if not record:
-                console.print("[bold yellow]! Time Limit Reached[/]")
-                logger.info("Time limit reached. Stopping.")
+                console.print("[bold green]✓ Batch Cycle Completed (Duration Reached)[/]")
+                logger.info("Batch duration completed normally.")
                 break
                 
             history_records.append(record)

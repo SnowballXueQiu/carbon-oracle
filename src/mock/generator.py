@@ -34,7 +34,7 @@ class MockBatchGenerator:
         elif self.batch_type == "optimal":
             # Tuned for Success (Goal > 3.0 mmol/g)
             self.target_temp = 800.0 
-            self.ph_decay_rate = 1.2 # Tuned to reach ~8.0 pH from 13.5 over 100mins
+            self.ph_decay_rate = 0.6 # Reduced from 1.2 to land near pH 8.0 (13.5 - 0.03*180 = ~8.1)
             self.start_ph = 13.5
         else: # Normal
             self.target_temp = random.uniform(750, 850)
@@ -161,7 +161,7 @@ class MockBatchGenerator:
         if self.batch_type == "under_active": bias = -1.0
         if self.batch_type == "over_active": bias = -0.5 # Overburn is bad too
         if self.batch_type == "abnormal": bias = -2.0
-        if self.batch_type == "optimal": bias = 0.2 # Boost for optimal
+        if self.batch_type == "optimal": bias = 0.5 # Increased bias to ensure capacity > 3.0
 
         capacity = score + bias + random.gauss(0, 0.1)
         return max(0.1, round(capacity, 2))
