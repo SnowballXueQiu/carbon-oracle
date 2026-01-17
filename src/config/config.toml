@@ -1,0 +1,28 @@
+# ===== Core =====
+ai_provider = "ollama"  # ollama | openai
+experiment_duration_min = 180
+prediction_interval_min = 5
+random_seed = 42
+
+# ===== Prediction Thresholds =====
+[min_thresholds]
+min_capacity = 1.5
+target_capacity = 3.0
+
+# ===== Agent Behavior =====
+[agent]
+stop_on_low_trend = true
+require_confidence = 0.6
+out_of_distribution_policy = "warn"  # warn | stop
+
+# ===== OpenAI =====
+[openai]
+api_key = "sk-xxxxxxxxxxxx"
+base_url = "https://api.openai.com/v1"
+model = "gpt-4o"
+max_tokens = 3000
+
+# ===== Ollama =====
+[ollama]
+base_url = "http://localhost:11434/v1"
+model = "gpt-oss:latest"

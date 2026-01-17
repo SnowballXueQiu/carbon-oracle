@@ -1,0 +1,30 @@
+[project]
+name = "carbon-oracle"
+version = "0.1.0"
+description = "Adsorbent Intelligent Monitoring System"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "toml",
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "joblib",
+    "pydantic",
+    "requests",
+    "openai",
+    "matplotlib",
+    "seaborn",
+    "rich",
+    "chromadb",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
