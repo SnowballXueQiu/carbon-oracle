@@ -59,7 +59,7 @@ The simulator is grounded in the chemical kinetics of **KOH-assisted chemical ac
 *   **pH Decay Dynamics ($\text{pH}$)**:
     *   **Chemical Significance**: The pH of the off-gas condensate serves as a real-time proxy for KOH consumption and reaction progress.
     *   **Trajectory**: The off-gas starts strongly alkaline ($\text{pH} \approx 14$) due to sublimated KOH. As the reaction proceeds and carbonate forms ($2KOH + CO_2 \to K_2CO_3 + H_2O$), the alkalinity naturally decays.
-    *   **Model**: $\text{pH}_t = \text{pH}_{0} - k_{reaction} \cdot t + \epsilon$.
+    *   **Model**: $pH_t = pH_0 - k_\text{reaction} \cdot t + \epsilon$.
     *   **Process Window**: A rapid drop ($\text{pH} < 7$) indicates "Acid Runaway" (destructive decomposition), while sustained high pH implies insufficient precursor-activator contact.
 
 *   **Conductivity & Gas Evolution ($\sigma$)**:
