@@ -37,12 +37,7 @@ class MockBatchGenerator:
             self.target_temp = random.uniform(750, 850)
             self.ph_decay_rate = 1.0
 
-    def adjust_target_temp(self, new_temp: float):
-        """ Control Interface for Agent """
-        print(f"[MockHardware] Adjusting Heater Target: {self.target_temp:.1f} -> {new_temp:.1f}C")
-        self.target_temp = new_temp
-
-        # Dynamics
+        # Dynamics (Initial State)
         self.current_ph = self.start_ph
         self.current_cond = 1.0
         self.current_temp = 25.0  # Room temp start
@@ -53,6 +48,11 @@ class MockBatchGenerator:
         self.temp_history = []
         self.ph_history = []
         self.color_history = []
+
+    def adjust_target_temp(self, new_temp: float):
+        """ Control Interface for Agent """
+        print(f"[MockHardware] Adjusting Heater Target: {self.target_temp:.1f} -> {new_temp:.1f}C")
+        self.target_temp = new_temp
 
     def _determine_batch_type(self) -> str:
         # Increase probability of interesting/bad batches for Demo purposes
