@@ -48,30 +48,31 @@ To allow for rigorous testing of the control logic without wasting physical reag
 
 The mock data is not random noise; it is generated based on theoretical chemical engineering principles governing activation kinetics.
 
-### 3.1. Theoretical Basis
-The simulator models a standard **KOH Activation Process** of biomass.
+### 3.1. Theoretical Basis (Phenomenological Modeling)
+The simulator is grounded in the chemical kinetics of **KOH-assisted chemical activation** of carbon precursors. The core mechanism involves the redox reaction where carbon is etched by potassium compounds to create high-density microporosity.
 
-*   **Temperature Dynamics ($T$)**:
-    *   Modeled as a PID-controlled heating ramp with stochastic thermal lag.
-    *   **Failure Mode**: "Abnormal" batches simulate thermocouple decoupling or heater element failure (drifting $\Delta T$).
-    *   *Equation Logic*: $T_{t+1} = T_{target} + \mathcal{N}(0, \sigma_{chaos})$
+*   **Reaction Kinetics & Temperature ($T$)**:
+    *   **Mechanism**: The critical activation step is governed by the stoicheometry: $6KOH + 2C \longleftrightarrow 2K + 3H_2 + 2K_2CO_3$.
+    *   **Thermodynamics**: Since the boiling point of Potassium is $762^\circ C$, effective activation requires operating at $T > 760^\circ C$ to generate metallic $K$ vapor, which intercalates between graphene layers to expand the lattice.
+    *   **Dynamics**: Modeled as a PID response with thermal inertia: $T_{t+1} = T_{target} + \mathcal{N}(0, \sigma)$.
     
-*   **pH Decay ($\text{pH}$)**:
-    *   **Proxy for Reaction Progress**: High pH indicates unreacted base. As K₂CO₃ forms and intercalates, free OH⁻ concentration drops.
-    *   **Model**: Exponential decay with noise. 
-    *   *Logic*: $\text{pH}(t) = \text{pH}_{0} - k \cdot t + \epsilon$
-    *   **Optimal Trajectory**: A balanced decay (Rate $\approx 1.2$) correlates with optimal pore formation. Too fast = acid runaway; Too slow = insufficient activation.
+*   **pH Decay Dynamics ($\text{pH}$)**:
+    *   **Chemical Significance**: The pH of the off-gas condensate serves as a real-time proxy for KOH consumption and reaction progress.
+    *   **Trajectory**: The off-gas starts strongly alkaline ($\text{pH} \approx 14$) due to sublimated KOH. As the reaction proceeds and carbonate forms ($2KOH + CO_2 \to K_2CO_3 + H_2O$), the alkalinity naturally decays.
+    *   **Model**: $\text{pH}_t = \text{pH}_{0} - k_{reaction} \cdot t + \epsilon$.
+    *   **Process Window**: A rapid drop ($\text{pH} < 7$) indicates "Acid Runaway" (destructive decomposition), while sustained high pH implies insufficient precursor-activator contact.
 
-*   **Conductivity ($\sigma$)**:
-    *   Modeled as a Sigmoid function representing the release of metallic potassium vapor and ions during the "activation window" (>700°C).
-    *   $S(t) = \frac{1}{1 + e^{-(t - t_0)}}$
+*   **Conductivity & Gas Evolution ($\sigma$)**:
+    *   **Ion Detection**: Peaks in conductivity correlate with the intense release of metallic $K$ vapor and hydrogen gas ($H_2$) during the peak activation window.
+    *   **Model**: Modeled as a Sigmoid activation function centered around the activation onset time: $\sigma(t) = \frac{1}{1 + e^{-(t - t_{onset})}}$.
 
-*   **Ground Truth Capacity (Target Variable)**:
-    The "True" CO₂ capacity (mmol/g) is calculated at the end of the batch using a multivariate scoring function representing the **"Goldilocks Zone"** of carbonization:
-    $$ Capacity \propto f(T_{mean}) + f(pH_{final}) + f(Color_{max}) + \text{Bias}_{batch\_type} $$
-    *   **$T_{mean}$**: Gaussian penalty centered at 800°C (Optimality).
-    *   **$pH_{final}$**: Penalty for extreme acidity or alkalinity.
+*   **Capacity Scoring Function ($C_{CO2}$)**:
+    The final adsorption capacity (mmol/g) is estimated via a non-linear multivariate utility function representing the processing **"Goldilocks Zone"**:
     
+    $Capacity \propto \alpha \cdot e^{-\frac{(T_{mean} - 800)^2}{2\sigma_T^2}} + \beta \cdot e^{-\frac{(pH_{final} - 8.0)^2}{2\sigma_{pH}^2}} + \gamma \cdot \text{Color}_{max}$
+
+    *   **Efficiency**: This function rewards retention of micropores (formed optimally at $\approx 800^\circ C$) while penalizing sintering (caused by $T > 900^\circ C$) or incomplete activation (caused by low $T$).
+
 ### 3.2 Batch Scenarios
 The simulator generates probabilistic scenarios covering the operational envelope:
 1.  **Optimal (60%)**: Parameters stay within the calibrated window. Reference Capacity > 3.0 mmol/g.
